@@ -1,0 +1,12 @@
+services:
+  web:
+    build: .
+    container_name: photo_exchange
+    restart: always
+    volumes:
+      - ./app/media:/app/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+
