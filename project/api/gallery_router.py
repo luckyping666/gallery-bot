@@ -38,6 +38,46 @@ async def upload_gallery(
     }
 
 
+from fastapi import APIRouter, UploadFile, Form, Depends
+from fastapi.responses import HTMLResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.config import settings
+from core.deps import get_db
+from services.gallery_service import GalleryService
+from repositories.gallery_repository import GalleryRepository
+
+import os
+
+router = APIRouter(prefix="/gallery", tags=["Gallery"])
+
+
+@router.post("/upload")
+async def upload_gallery(
+    chat_id: int = Form(...),
+    files: list[UploadFile] = None,
+    session: AsyncSession = Depends(get_db)
+):
+    if not files:
+        return {"error": "No files provided"}
+
+    file_bytes = [await f.read() for f in files]
+    filenames = [f.filename for f in files]
+
+    service = GalleryService(GalleryRepository())
+
+    hash_id = await service.create_gallery(
+        session=session,
+        chat_id=chat_id,
+        files=file_bytes,
+        filenames=filenames
+    )
+
+    return {
+        "url": f"{settings.BASE_URL.rstrip('/')}/gallery/view/{hash_id}"
+    }
+
+
 @router.get("/view/{hash_id}", response_class=HTMLResponse)
 async def view_gallery(hash_id: str):
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
