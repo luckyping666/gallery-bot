@@ -8,20 +8,28 @@ router = Router()
 
 
 @router.message(lambda msg: msg.photo)
-async def handle_photos(message: Message):
+async def handle_photos(message: Message, album: list[Message] | None = None):
     """
-    Обрабатывает входящие фотографии от пользователя.
+    Обрабатывает одиночные фото и альбомы.
     Отправляет их в FastAPI для создания галереи.
     """
+
     chat_id = message.chat.id
-    photos = message.photo
+
+    # Если это альбом — используем все фото из альбома
+    if album:
+        photos = []
+        for msg in album:
+            photos.extend(msg.photo)
+    else:
+        photos = message.photo
 
     # Получаем ссылки на файлы Telegram
     file_urls = []
     for p in photos:
         file = await message.bot.get_file(p.file_id)
         file_url = f"https://api.telegram.org/file/bot{message.bot.token}/{file.file_path}"
-        file_urls.append(file_url)
+        file_urls.append((file_url, file.file_path.split("/")[-1]))
 
     # Формируем multipart form-data
     form = aiohttp.FormData()
@@ -29,10 +37,9 @@ async def handle_photos(message: Message):
 
     async with aiohttp.ClientSession() as session:
         # Скачиваем фото и добавляем в форму
-        for url in file_urls:
+        for url, filename in file_urls:
             async with session.get(url) as resp:
                 content = await resp.read()
-                filename = url.split("/")[-1]
 
                 form.add_field(
                     "files",
@@ -47,13 +54,11 @@ async def handle_photos(message: Message):
 
         # Отправляем в FastAPI
         async with session.post(upload_url, data=form) as resp:
-            # Если сервер вернул ошибку — покажем текст
             if resp.status != 200:
                 text = await resp.text()
                 await message.answer(f"Ошибка сервера ({resp.status}):\n{text}")
                 return
 
-            # Пробуем прочитать JSON
             try:
                 data = await resp.json()
             except Exception:
