@@ -4,8 +4,7 @@ from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.gallery_repository import GalleryRepository
-from app.core.config import settings
+from repositories.gallery_repository import GalleryRepository
 
 
 class GalleryService:
@@ -38,11 +37,15 @@ class GalleryService:
             files (List[bytes]): Список бинарных данных изображений.
             filenames (List[str]): Имена файлов.
         """
-        folder = f"app/static/images/{hash_id}"
-        os.makedirs(folder, exist_ok=True)
+
+        # Абсолютный путь к папке static/images/<hash_id>
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        IMAGES_DIR = os.path.join(BASE_DIR, "static", "images", hash_id)
+
+        os.makedirs(IMAGES_DIR, exist_ok=True)
 
         for file_bytes, filename in zip(files, filenames):
-            path = f"{folder}/{filename}"
+            path = os.path.join(IMAGES_DIR, filename)
             with open(path, "wb") as f:
                 f.write(file_bytes)
 
@@ -63,6 +66,7 @@ class GalleryService:
         Returns:
             str: hash галереи
         """
+
         # 1. Считаем номер галереи
         counter = await self.repository.count_by_chat(session, chat_id) + 1
 

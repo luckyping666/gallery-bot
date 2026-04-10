@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.gallery import Gallery
+from models.gallery import Gallery
 
 
 class GalleryRepository:

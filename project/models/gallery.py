@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import Integer, String
-from app.core.database import Base
+from core.database import Base
 
 class Gallery(Base):
     __tablename__ = "galleries"
